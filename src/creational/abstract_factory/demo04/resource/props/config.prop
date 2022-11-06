@@ -1,0 +1,3 @@
+# 当前使用的工厂类
+# FACTORY=creational.abstract_factory.demo04.LinuxFactory
+FACTORY=creational.abstract_factory.demo04.UnixFactory

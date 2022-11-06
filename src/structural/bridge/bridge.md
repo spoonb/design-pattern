@@ -1,0 +1,364 @@
+## 简述
+
+通过抽离出多个维度相互组合(聚合)来代替继承，简化系统。
+
+话不多说，看个优化案例。
+
+## 优化案例
+
+现有系统中，对于画面窗口的边框有一套样式来控制是否有圆角。因为新的需求，需要增加两套样式，一套控制边框线条的颜色(红、黄、蓝)，一套控制边框有无阴影。我们来看看几种实现方式。
+
+### 最初版v0
+
+我们看看用继承或实现的方式，会是什么样子。
+
+```java
+public interface Style {
+    void style();
+}
+
+public class Radius implements Style {
+    public void style() {
+        radius();
+    }
+
+    protected void radius() {
+        System.out.println("有边框圆角");
+    }
+}
+
+public class RadiusRed extends Radius {
+    public void style() {
+        super.style();
+        this.red();
+    }
+
+    protected void red() {
+        System.out.println("红色边框");
+    }
+}
+
+public class RadiusBlue extends Radius {
+    public void style() {
+        super.style();
+        this.blue();
+    }
+
+    protected void blue() {
+        System.out.println("蓝色边框");
+    }
+}
+
+public class RadiusYellow extends Radius {
+    public void style() {
+        super.style();
+        this.yellow();
+    }
+
+    protected void yellow() {
+        System.out.println("黄色边框");
+    }
+}
+
+public class RadiusRedShadow extends RadiusRed {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("有边框阴影");
+    }
+}
+
+public class RadiusBlueShadow extends RadiusBlue {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("有边框阴影");
+    }
+}
+
+public class RadiusYellowShadow extends RadiusYellow {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("有边框阴影");
+    }
+}
+
+public class RadiusRedNotShadow extends RadiusRed {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+
+public class RadiusBlueNotShadow extends RadiusBlue {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+
+public class RadiusYellowNotShadow extends RadiusYellow {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+
+public class NotRadius implements Style {
+    public void style() {
+        radius();
+    }
+
+    protected void radius() {
+        System.out.println("无边框圆角");
+    }
+}
+
+public class NotRadiusRed extends NotRadius {
+    public void style() {
+        super.style();
+        this.red();
+    }
+
+    protected void red() {
+        System.out.println("红色边框");
+    }
+}
+
+public class NotRadiusBlue extends NotRadius {
+    public void style() {
+        super.style();
+        this.blue();
+    }
+
+    protected void blue() {
+        System.out.println("蓝色边框");
+    }
+}
+
+public class NotRadiusYellow extends NotRadius {
+    public void style() {
+        super.style();
+        this.yellow();
+    }
+
+    protected void yellow() {
+        System.out.println("黄色边框");
+    }
+}
+
+public class NotRadiusRedShadow extends NotRadiusRed {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("边框阴影");
+    }
+}
+
+public class NotRadiusBlueShadow extends NotRadiusBlue {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("边框阴影");
+    }
+}
+
+public class NotRadiusYellowShadow extends NotRadiusYellow {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("边框阴影");
+    }
+}
+
+public class NotRadiusRedNotShadow extends NotRadiusRed {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+
+public class NotRadiusBlueNotShadow extends NotRadiusBlue {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+
+public class NotRadiusYellowNotShadow extends NotRadiusYellow {
+    public void style() {
+        super.style();
+        this.shadow();
+    }
+
+    protected void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+```
+
+可以看出，使用实现或者继承的方式来构件模块所需的类的数量及其的庞大(21个)。写吐了，太多太繁琐了。
+再看看客户端的使用方法。
+
+```java
+public class Client {
+    public static void main(String[] args) {
+        Style style = new NotRadiusYellowNotShadow();
+        style.style();
+    }
+}
+```
+
+客户端的使用还是比较简单的，但这并不能掩盖类的数量过多的问题。
+
+那么除了这种方法，我们还有什么别的更好的办法可以实现吗？当然有了。
+
+### 修改版v1
+
+引入桥接模式，优化多维度继承问题。
+首先，我们得分析这个模块。模块中有三种不同的维度(`Radius`,`Color`,`Shadow`)，都是用来拓展`Style`的。将三个维度都抽象成接口，并且将`Style`定义为桥接类。我们看看新的代码。
+
+```java
+public interface Radius {
+    void radius();
+}
+
+public interface Color {
+    void color();
+}
+
+public interface Shadow {
+    void shadow();
+}
+
+public class HasRadius implements Radius {
+    public void radius() {
+        System.out.println("有边框圆角");
+    }
+}
+
+public class HasNotRadius implements Radius {
+    public void radius() {
+        System.out.println("无边框圆角");
+    }
+}
+
+public class Red implements Color {
+    public void color() {
+        System.out.println("红色边框");
+    }
+}
+
+public class Yellow implements Color {
+    public void color() {
+        System.out.println("黄色边框");
+    }
+}
+
+public class Blue implements Color {
+    public void color() {
+        System.out.println("蓝色边框");
+    }
+}
+
+public class HasShadow implements Shadow {
+    public void shadow() {
+        System.out.println("有边框阴影");
+    }
+}
+
+public class HasNotShadow implements Shadow {
+    public void shadow() {
+        System.out.println("无边框阴影");
+    }
+}
+
+public class Style {
+    private Radius radius;
+    private Color color;
+    private Shadow shadow;
+
+    public Style(Radius radius, Color color, Shadow shadow) {
+        this.radius = radius;
+        this.color = color;
+        this.shadow = shadow;
+    }
+
+    public void init() {
+        radius.radius();
+        color.color();
+        shadow.shadow();
+    }
+}
+```
+
+类的数量急剧减少，而且如果三个维度中有新的`Style`增加，也只需要在对应的维度增加新的实现类即可。即便增加新的维度，也只需要对应增加一套接口和实现类。最多在桥接类`Style`中增加持有的接口对象即可(虽然不符合开闭原则)。
+
+我们再来看看客户端的使用方法。
+
+```java
+public class Client {
+    public static void main(String[] args) {
+        Style style = new Style(new HasRadius(), new Red(), new HasShadow());
+        style.init();
+    }
+}
+```
+
+`Style`持有`Radius`，`Color`，`Shadow`，并且根据构造时传入的具体实现动态的更改持有的具体实现。易用性上也有着提升。
+
+## 总结
+
+### 优点
+
+1. 通过聚合或组合替代传统的继承方案。
+2. 提高了系统的可拓展性，每个维度增加新的是实现或者增加新的维度，对原有系统无影响。
+
+### 缺点
+
+1. 增加系统的理解和设计难度，需要面向抽象编程。
+2. 需要预先确定**正确的**维度。看问题的角度不同得到的结果也不同，这个维度也是一样的，作为乙方想到的维度很有可能不是甲方预想的维度，所以这个维度的确认竟可能在功能实现前找客户确认完成之后决定。
+3. 增加新维度会导致需要修改桥接类，这违背了开闭原则。
+
+### 适用场景
+
+1. 可以抽象出多个维度的功能组合的类设计的场景。
