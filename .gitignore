@@ -1,2 +1,4 @@
-.idea/
-out/
+/.idea/
+/out/
+/target/
+design-pattern.iml
